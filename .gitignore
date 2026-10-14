@@ -1,0 +1,6 @@
+data/
+pb_data/
+*.duckdb
+*.duckdb.wal
+pduck.exe
+pduck
