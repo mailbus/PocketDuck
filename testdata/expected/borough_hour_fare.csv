@@ -1,0 +1,167 @@
+Borough,pickup_hour,avg_fare
+Bronx,0,19.32
+Bronx,1,10.21
+Bronx,2,8.84
+Bronx,3,10.83
+Bronx,4,24.27
+Bronx,5,32.91
+Bronx,6,30.97
+Bronx,7,29.78
+Bronx,8,28.87
+Bronx,9,29.12
+Bronx,10,29.97
+Bronx,11,30.29
+Bronx,12,30.06
+Bronx,13,29.91
+Bronx,14,28.81
+Bronx,15,28.53
+Bronx,16,29.19
+Bronx,17,28.39
+Bronx,18,26.06
+Bronx,19,26.5
+Bronx,20,25.25
+Bronx,21,26.05
+Bronx,22,23.09
+Bronx,23,21.71
+Brooklyn,0,19.9
+Brooklyn,1,20.15
+Brooklyn,2,17.83
+Brooklyn,3,17.48
+Brooklyn,4,20.91
+Brooklyn,5,25.86
+Brooklyn,6,27.56
+Brooklyn,7,26.08
+Brooklyn,8,25.67
+Brooklyn,9,25.59
+Brooklyn,10,26.67
+Brooklyn,11,25.93
+Brooklyn,12,25.96
+Brooklyn,13,25.27
+Brooklyn,14,23.89
+Brooklyn,15,24.48
+Brooklyn,16,24.62
+Brooklyn,17,22.4
+Brooklyn,18,20.45
+Brooklyn,19,21.36
+Brooklyn,20,21.11
+Brooklyn,21,20.17
+Brooklyn,22,20.25
+Brooklyn,23,20.82
+EWR,1,60.0
+EWR,2,98.0
+EWR,3,108.33
+EWR,4,106.0
+EWR,5,116.33
+EWR,6,74.3
+EWR,7,80.33
+EWR,8,87.14
+EWR,9,114.99
+EWR,10,92.91
+EWR,11,104.69
+EWR,12,52.05
+EWR,13,88.38
+EWR,14,86.74
+EWR,15,76.58
+EWR,16,71.0
+EWR,17,93.88
+EWR,18,78.32
+EWR,19,74.1
+EWR,20,56.6
+EWR,21,56.11
+EWR,23,70.22
+Manhattan,0,13.72
+Manhattan,1,13.74
+Manhattan,2,13.75
+Manhattan,3,14.07
+Manhattan,4,18.01
+Manhattan,5,18.13
+Manhattan,6,14.63
+Manhattan,7,14.15
+Manhattan,8,14.24
+Manhattan,9,14.21
+Manhattan,10,14.05
+Manhattan,11,14.27
+Manhattan,12,14.22
+Manhattan,13,14.53
+Manhattan,14,14.57
+Manhattan,15,14.31
+Manhattan,16,14.05
+Manhattan,17,13.64
+Manhattan,18,13.13
+Manhattan,19,12.88
+Manhattan,20,13.08
+Manhattan,21,13.32
+Manhattan,22,13.63
+Manhattan,23,13.51
+N/A,0,88.93
+N/A,1,71.0
+N/A,2,61.39
+N/A,3,108.49
+N/A,4,68.57
+N/A,5,70.27
+N/A,6,48.58
+N/A,7,66.98
+N/A,8,90.04
+N/A,9,65.99
+N/A,10,56.44
+N/A,11,82.13
+N/A,12,87.2
+N/A,13,66.98
+N/A,14,58.83
+N/A,15,66.37
+N/A,16,74.73
+N/A,17,93.81
+N/A,18,100.67
+N/A,19,80.15
+N/A,20,72.55
+N/A,21,92.9
+N/A,22,87.27
+N/A,23,95.59
+Queens,0,42.75
+Queens,1,37.51
+Queens,2,29.59
+Queens,3,27.56
+Queens,4,30.33
+Queens,5,38.66
+Queens,6,41.41
+Queens,7,43.31
+Queens,8,41.99
+Queens,9,43.51
+Queens,10,43.56
+Queens,11,44.53
+Queens,12,111.37
+Queens,13,45.83
+Queens,14,47.11
+Queens,15,49.27
+Queens,16,50.88
+Queens,17,48.08
+Queens,18,45.9
+Queens,19,48.02
+Queens,20,46.88
+Queens,21,46.31
+Queens,22,45.2
+Queens,23,42.93
+Staten Island,0,31.18
+Staten Island,1,35.31
+Staten Island,2,20.57
+Staten Island,3,16.76
+Staten Island,4,34.34
+Staten Island,5,32.68
+Staten Island,6,34.29
+Staten Island,7,42.99
+Staten Island,8,32.3
+Staten Island,9,23.03
+Staten Island,10,14.05
+Staten Island,11,18.8
+Staten Island,12,4.73
+Staten Island,13,8.41
+Staten Island,14,6.47
+Staten Island,15,4.42
+Staten Island,16,18.7
+Staten Island,17,0.01
+Staten Island,18,15.95
+Staten Island,19,70.47
+Staten Island,20,18.63
+Staten Island,21,10.19
+Staten Island,22,32.95
+Staten Island,23,27.91
