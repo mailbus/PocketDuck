@@ -42,6 +42,17 @@ func main() {
 
 	app := pocketbase.New()
 
+	// 票02: 只读 DuckDB + /api/analyze（独立路由，不进 PB 热路径）
+	duckDB, err := openDuckDB("data/warehouse.duckdb")
+	if err != nil {
+		log.Fatalf("open duckdb: %v", err)
+	}
+	defer duckDB.Close()
+	app.OnServe().Bind(&hook.Handler[*core.ServeEvent]{
+		Func:     bindAnalyze(duckDB),
+		Priority: -100,
+	})
+
 	// 静态服务 pb_public/（v0.40 需显式绑定；对齐官方 examples/base/main.go）
 	app.OnServe().Bind(&hook.Handler[*core.ServeEvent]{
 		Func: func(e *core.ServeEvent) error {
