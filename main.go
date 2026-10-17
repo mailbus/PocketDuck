@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -28,6 +29,29 @@ func duckcheck() {
 	fmt.Printf("duckdb ok: SELECT 1 -> %d\n", one)
 }
 
+// exportCmd: 票05 写侧 CLI——写操作不进 PB 请求路径（宪法同款纪律）。
+// 用法: pduck export -sql "SELECT ..." -to out.parquet
+//       pduck export -sql "SELECT ..." -to postgres://user:pass@host:port/db/表名
+func exportCmd() {
+	fs := flag.NewFlagSet("export", flag.ExitOnError)
+	sqlQ := fs.String("sql", "", "导出的 SELECT 查询")
+	to := fs.String("to", "", "目标: <path>.parquet 或 postgres://user:pass@host:port/db/表名")
+	fs.Parse(os.Args[2:])
+	if *sqlQ == "" || *to == "" {
+		fs.Usage()
+		os.Exit(2)
+	}
+	duckDB, err := openDuckDB("data/warehouse.duckdb")
+	if err != nil {
+		log.Fatalf("open duckdb: %v", err)
+	}
+	defer duckDB.Close()
+	if err := Export(duckDB, *sqlQ, *to); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("exported -> %s\n", *to)
+}
+
 func main() {
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
@@ -36,6 +60,9 @@ func main() {
 			return
 		case "duckcheck":
 			duckcheck()
+			return
+		case "export":
+			exportCmd()
 			return
 		}
 	}
