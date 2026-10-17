@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PocketDuck Console</title>
+<style>
+  :root { --bg:#10141a; --panel:#1a212b; --line:#2a3442; --text:#d7dee8; --dim:#8a97a8; --acc:#4cc38a; --err:#e5484d; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; background:var(--bg); color:var(--text); }
+  header { display:flex; align-items:baseline; gap:12px; padding:12px 20px; border-bottom:1px solid var(--line); }
+  header h1 { font-size:16px; margin:0; }
+  header .user { color:var(--dim); margin-left:auto; font-size:12px; }
+  main { max-width:1100px; margin:0 auto; padding:20px; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; margin-bottom:16px; }
+  label { display:block; color:var(--dim); font-size:12px; margin-bottom:4px; }
+  input, textarea { width:100%; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:8px 10px; font:inherit; }
+  textarea { min-height:110px; resize:vertical; }
+  button { background:var(--acc); color:#0b1310; border:0; border-radius:6px; padding:8px 18px; font:inherit; font-weight:600; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
+  .row { display:flex; gap:10px; align-items:center; margin-top:10px; }
+  .stats { color:var(--dim); font-size:12px; }
+  .warn { color:#f5a524; font-size:12px; }
+  .error { color:var(--err); white-space:pre-wrap; }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th, td { border:1px solid var(--line); padding:5px 9px; text-align:left; }
+  th { background:#141a22; color:var(--acc); position:sticky; top:0; }
+  td { max-width:420px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tablewrap { max-height:60vh; overflow:auto; border-radius:6px; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PocketDuck 🦆 Console</h1>
+  <span class="stats">read-only SQL via POST /api/analyze</span>
+  <span class="user" id="whoami"></span>
+  <button class="hidden" id="logout" style="padding:4px 10px;font-size:12px;">logout</button>
+</header>
+<main>
+  <div class="panel" id="loginPanel">
+    <label>PocketBase account</label>
+    <input id="email" type="email" placeholder="email">
+    <div style="height:8px"></div>
+    <label>Password</label>
+    <input id="password" type="password" placeholder="password">
+    <div class="row">
+      <button id="loginBtn">Sign in</button>
+      <span class="error" id="loginErr"></span>
+    </div>
+  </div>
+
+  <div class="panel hidden" id="workPanel">
+    <label>SQL</label>
+    <textarea id="sql" spellcheck="false">SELECT Borough, count(*) AS zones
+FROM read_csv('testdata/taxi_zone_lookup.csv')
+GROUP BY Borough ORDER BY zones DESC</textarea>
+    <div class="row">
+      <button id="runBtn">Run</button>
+      <span class="stats" id="stats"></span>
+      <span class="warn hidden" id="trunc">⚠ truncated at 10,000 rows</span>
+    </div>
+    <div class="error hidden" id="err" style="margin-top:10px;"></div>
+    <div class="tablewrap hidden" id="wrap" style="margin-top:12px;">
+      <table id="result"></table>
+    </div>
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+
+async function pbLogin(email, password) {
+  // superuser 与普通用户两个集合都试，谁成功用谁
+  for (const col of ['_superusers', 'users']) {
+    const r = await fetch(`/api/collections/${col}/auth-with-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identity: email, password })
+    });
+    if (r.ok) return (await r.json()).token;
+  }
+  throw new Error('sign in failed: wrong email/password?');
+}
+
+$('loginBtn').onclick = async () => {
+  $('loginErr').textContent = '';
+  try {
+    const token = await pbLogin($('email').value, $('password').value);
+    localStorage.setItem('pduck_token', token);
+    enter(token);
+  } catch (e) { $('loginErr').textContent = e.message; }
+};
+
+$('logout').onclick = () => { localStorage.removeItem('pduck_token'); location.reload(); };
+
+function enter(token) {
+  $('loginPanel').classList.add('hidden');
+  $('workPanel').classList.remove('hidden');
+  $('logout').classList.remove('hidden');
+  $('whoami').textContent = 'signed in · ' + JSON.parse(atob(token.split('.')[1])).id;
+  $('sql').focus();
+}
+
+$('runBtn').onclick = run;
+$('sql').onkeydown = e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') run(); };
+
+async function run() {
+  $('runBtn').disabled = true;
+  $('err').classList.add('hidden');
+  $('trunc').classList.add('hidden');
+  $('wrap').classList.add('hidden');
+  $('stats').textContent = 'running…';
+  try {
+    const r = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: localStorage.getItem('pduck_token') },
+      body: JSON.stringify({ sql: $('sql').value })
+    });
+    const body = await r.json();
+    if (!r.ok) throw new Error(body.message || r.status);
+    $('stats').textContent = `${body.row_count} rows · ${body.elapsed_ms} ms`;
+    $('trunc').classList.toggle('hidden', !body.truncated);
+    const t = $('result');
+    const thead = document.createElement('thead');
+    const trh = document.createElement('tr');
+    for (const c of body.columns) {
+      const th = document.createElement('th'); th.textContent = c; trh.appendChild(th);
+    }
+    thead.appendChild(trh); t.replaceChildren(thead);
+    const tbody = document.createElement('tbody');
+    for (const row of body.rows) {
+      const tr = document.createElement('tr');
+      for (const v of row) {
+        const td = document.createElement('td');
+        td.textContent = v === null ? '∅' : String(v);
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+    t.appendChild(tbody);
+    $('wrap').classList.remove('hidden');
+  } catch (e) {
+    $('stats').textContent = '';
+    $('err').textContent = e.message;
+    $('err').classList.remove('hidden');
+  } finally {
+    $('runBtn').disabled = false;
+  }
+}
+
+// 已有 token 直接进入（过期则 401，重新登录即可）
+(async () => {
+  const token = localStorage.getItem('pduck_token');
+  if (!token) return;
+  const r = await fetch('/api/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: token },
+    body: JSON.stringify({ sql: 'SELECT 1' })
+  });
+  if (r.ok) enter(token); else localStorage.removeItem('pduck_token');
+})();
+</script>
+</body>
+</html>
