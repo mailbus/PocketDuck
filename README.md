@@ -1,7 +1,6 @@
 <div align="center">
 
-<!-- Place your logo at docs/assets/logo.png -->
-<!-- <img src="docs/assets/logo.png" alt="PocketDuck" width="200"/> -->
+<img src="docs/assets/logo.png" alt="PocketDuck" width="200"/>
 
 # PocketDuck
 
