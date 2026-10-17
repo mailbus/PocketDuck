@@ -4,9 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -35,16 +33,10 @@ func Export(db *sql.DB, query, dest string) error {
 // 流水线: DuckDB 查 schema → 建表 → COPY 结果到临时 CSV → pgx COPY FROM STDIN。
 // ponytail: CSV 全量落盘再导入，10 万行内存/磁盘压力可忽略；上百万行改流式管道。
 func exportPostgres(db *sql.DB, query, dest string) error {
-	u, err := url.Parse(dest)
+	dsn, table, err := splitTableRef(dest)
 	if err != nil {
-		return fmt.Errorf("pg dest parse: %w", err)
+		return fmt.Errorf("pg dest: %w", err)
 	}
-	table := path.Base(u.Path)
-	if table == "" || table == "/" || table == "." {
-		return fmt.Errorf("pg dest 缺少表名: %q（格式 postgres://host/db/表名）", dest)
-	}
-	u.Path = path.Dir(u.Path)
-	dsn := u.String()
 
 	// 1. 从 DuckDB 取查询 schema，映射 PG 类型建表
 	rows, err := db.Query("DESCRIBE " + query)
