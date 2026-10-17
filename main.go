@@ -52,6 +52,29 @@ func exportCmd() {
 	fmt.Printf("exported -> %s\n", *to)
 }
 
+// importCmd: 票06 读侧 CLI——外部 PG/MySQL 表拉进 warehouse。
+// 用法: pduck import -from "postgres://user:pass@host:port/db/表名" -into 表名
+//       pduck import -from "mysql://user:pass@host:port/db/表名" -into 表名
+func importCmd() {
+	fs := flag.NewFlagSet("import", flag.ExitOnError)
+	from := fs.String("from", "", "来源: postgres://host/db/表名 或 mysql://host/db/表名")
+	into := fs.String("into", "", "warehouse 中的目标表名")
+	fs.Parse(os.Args[2:])
+	if *from == "" || *into == "" {
+		fs.Usage()
+		os.Exit(2)
+	}
+	duckDB, err := openDuckDBRW("data/warehouse.duckdb") // import 需建表，走读写打开
+	if err != nil {
+		log.Fatalf("open duckdb: %v", err)
+	}
+	defer duckDB.Close()
+	if err := Import(duckDB, *from, *into); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("imported -> warehouse table %q\n", *into)
+}
+
 func main() {
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
@@ -63,6 +86,9 @@ func main() {
 			return
 		case "export":
 			exportCmd()
+			return
+		case "import":
+			importCmd()
 			return
 		}
 	}

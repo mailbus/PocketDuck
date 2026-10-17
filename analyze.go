@@ -39,6 +39,22 @@ func openDuckDB(path string) (*sql.DB, error) {
 	return sql.Open("duckdb", path+"?access_mode=read_only")
 }
 
+// openDuckDBRW: 写侧 CLI 专用（票06 import）；与只读的 openDuckDB 刻意分开，
+// 避免写权限渗回 /api/analyze 路径。
+func openDuckDBRW(path string) (*sql.DB, error) {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		if err := os.MkdirAll("data", 0o755); err != nil {
+			return nil, err
+		}
+		init, err := sql.Open("duckdb", path)
+		if err != nil {
+			return nil, err
+		}
+		init.Close() // 产生文件后关闭
+	}
+	return sql.Open("duckdb", path)
+}
+
 // normalizeRow 让值可 JSON 序列化：[]byte 转 string，其余原样
 func normalizeRow(vals []any) []any {
 	for i, v := range vals {
