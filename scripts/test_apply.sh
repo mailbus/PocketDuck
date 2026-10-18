@@ -21,7 +21,7 @@ TOKEN=$(curl -s "$SERVE_URL/api/collections/_superusers/auth-with-password" \
   | python -c "import json,sys;print(json.load(sys.stdin)['token'])")
 
 # ── 0. 清场上次产物（保证 created 语义可判定）
-python scripts/pb_clean.py "$SERVE_URL" "$TOKEN" saved_queries views pipelines > /dev/null
+python scripts/pb_clean.py "$SERVE_URL" "$TOKEN" saved_queries views pipelines pipeline_runs > /dev/null
 
 # ── 1. 坏 YAML → 结构化错误（agent 自修复前）
 cat > "$TMP/bad.yaml" <<'EOF'

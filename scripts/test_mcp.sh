@@ -28,6 +28,7 @@ TOKEN=$(curl -s "$SERVE_URL/api/collections/_superusers/auth-with-password" \
   -d '{"identity":"admin@example.com","password":"yourpassword"}' \
   | python -c "import json,sys;print(json.load(sys.stdin)['token'])")
 [ -n "$TOKEN" ] && echo "token ok"
+python scripts/pb_clean.py "$SERVE_URL" "$TOKEN" saved_queries views pipelines pipeline_runs > /dev/null
 
 # 3. 种子 named query（幂等：存在则跳过）
 EXIST=$(curl -s "$SERVE_URL/api/collections/saved_queries/records?filter=%28name%3D%27demo-total-trips%27%29" -H "Authorization: $TOKEN")
