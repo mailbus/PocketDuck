@@ -14,8 +14,10 @@ PRIVATE_PATHS=(
   --path docs/pduck讨论.md
   --path docs/项目启动手册.md
   --path docs/规格-v0.md
+  --path docs/规格-v0x.md
   --path-regex '^docs/实验记录-'
   --path .scratch
+  --path-regex '^(pduck|pocketduck)\.exe(~)?$'
 )
 
 [ -d "$MIRROR" ] || git clone --no-local --no-hardlinks . "$MIRROR"
