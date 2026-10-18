@@ -107,6 +107,10 @@ curl -s http://127.0.0.1:8090/api/analyze \
 | PostgreSQL / MySQL 数据源 | ✅ v0 |
 | SQL 控制台页 | ✅ v0 |
 | xlsx 导出（`pduck export -to out.xlsx`） | ✅ v0 |
+| MCP 读面工具（`pduck mcp`），面向 agent | ✅ v0.x |
+| `pduck apply` 声明式固化（查询/视图/管道） | ✅ v0.x |
+| 管道定时执行 + 数据快照 | ✅ v0.x |
+| 推送到 webhook / 飞书机器人 / Slack | ✅ v0.x |
 
 ## 许可
 

@@ -107,6 +107,10 @@ Verification is falsifiable: the demo query's expected output was frozen from an
 | PostgreSQL / MySQL sources | ✅ v0 |
 | SQL console page | ✅ v0 |
 | xlsx export (`pduck export -to out.xlsx`) | ✅ v0 |
+| MCP read tools (`pduck mcp`) for agents | ✅ v0.x |
+| `pduck apply` — declarative saved queries / views / pipelines | ✅ v0.x |
+| Scheduled pipeline runner + dataset snapshots | ✅ v0.x |
+| Push to webhook / Feishu bot / Slack | ✅ v0.x |
 
 ## License
 
