@@ -9,11 +9,14 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/marcboeker/go-duckdb/v2"
+	"github.com/xuri/excelize/v2"
 )
 
 // export.go: 票05 写侧流水线——DuckDB 查询结果写出。
 // 可插拔扩展点是 dest 字符串（宪法: 依赖克制，sink 按前缀分发）:
 //   - <path>.parquet  → DuckDB COPY TO parquet（parquet 扩展静态链接，无外部依赖）
+//   - <path>.xlsx     → 票08: Go 侧 excelize 流式写出（探针实证 excel 扩展仅 read_xlsx 无写侧）
 //   - postgres://...  → 任务2.2: DuckDB COPY TO csv → pgx COPY FROM STDIN
 //   - s3://...        → v0.x: httpfs 扩展接真对象存储
 
@@ -22,10 +25,12 @@ func Export(db *sql.DB, query, dest string) error {
 	switch {
 	case strings.HasSuffix(dest, ".parquet"):
 		return exportParquet(db, query, dest)
+	case strings.HasSuffix(dest, ".xlsx"):
+		return exportXlsx(db, query, dest)
 	case strings.HasPrefix(dest, "postgres://"), strings.HasPrefix(dest, "postgresql://"):
 		return exportPostgres(db, query, dest)
 	default:
-		return fmt.Errorf("unsupported dest %q: 仅支持 *.parquet 与 postgres://", dest)
+		return fmt.Errorf("unsupported dest %q: 仅支持 *.parquet、*.xlsx 与 postgres://", dest)
 	}
 }
 
@@ -132,6 +137,78 @@ func exportParquet(db *sql.DB, query, path string) error {
 	q := fmt.Sprintf("COPY (%s) TO '%s' (FORMAT parquet)", query, path)
 	if _, err := db.Exec(q); err != nil {
 		return fmt.Errorf("copy parquet: %w", err)
+	}
+	return nil
+}
+
+// exportXlsx: excelize StreamWriter 流式写出（10 万行不吃内存）。
+// go-duckdb 扫描 any 的具体类型先归一（Double 进 any 是 duckdb.Decimal 不是 float64，
+// excelize 不认识会降级成字符串单元格），保数字/布尔/日期列的单元格类型。
+func exportXlsx(db *sql.DB, query, path string) error {
+	rows, err := db.Query(query)
+	if err != nil {
+		return fmt.Errorf("query: %w", err)
+	}
+	defer rows.Close()
+	cols, err := rows.Columns()
+	if err != nil {
+		return err
+	}
+	toCell := func(v any) any {
+		switch t := v.(type) {
+		case duckdb.Decimal:
+			return t.Float64()
+		case []byte:
+			return string(t)
+		default:
+			return v
+		}
+	}
+
+	f := excelize.NewFile()
+	defer f.Close()
+	sw, err := f.NewStreamWriter("Sheet1")
+	if err != nil {
+		return err
+	}
+	header := make([]any, len(cols))
+	for i, c := range cols {
+		header[i] = c
+	}
+	if err := sw.SetRow("A1", header); err != nil {
+		return fmt.Errorf("xlsx header: %w", err)
+	}
+
+	vals := make([]any, len(cols))
+	ptrs := make([]any, len(cols))
+	for i := range ptrs {
+		ptrs[i] = &vals[i]
+	}
+	r := 1
+	for rows.Next() {
+		if err := rows.Scan(ptrs...); err != nil {
+			return fmt.Errorf("scan: %w", err)
+		}
+		r++
+		cell, err := excelize.CoordinatesToCellName(1, r)
+		if err != nil {
+			return err
+		}
+		for i, v := range vals {
+			vals[i] = toCell(v)
+		}
+		if err := sw.SetRow(cell, vals); err != nil {
+			return fmt.Errorf("xlsx row %d: %w", r, err)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if err := sw.Flush(); err != nil {
+		return fmt.Errorf("xlsx flush: %w", err)
+	}
+	if err := f.SaveAs(path); err != nil {
+		return fmt.Errorf("xlsx save: %w", err)
 	}
 	return nil
 }

@@ -31,6 +31,7 @@ func duckcheck() {
 
 // exportCmd: 票05 写侧 CLI——写操作不进 PB 请求路径（宪法同款纪律）。
 // 用法: pduck export -sql "SELECT ..." -to out.parquet
+//       pduck export -sql "SELECT ..." -to out.xlsx
 //       pduck export -sql "SELECT ..." -to postgres://user:pass@host:port/db/表名
 func exportCmd() {
 	fs := flag.NewFlagSet("export", flag.ExitOnError)

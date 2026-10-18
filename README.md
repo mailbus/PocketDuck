@@ -97,9 +97,10 @@ Verification is falsifiable: the demo query's expected output was frozen from an
 | Roadmap | Status |
 |---|---|
 | Read-only `/api/analyze` over Parquet/CSV/SQLite | ✅ v0 |
-| Write-side pipeline (SQL file → cron → Parquet/PG) | planned |
-| PostgreSQL / MySQL sources | planned |
-| SQL console page, xlsx export | far future |
+| Write-side pipeline (SQL file → cron → Parquet/PG) | ✅ v0 |
+| PostgreSQL / MySQL sources | ✅ v0 |
+| SQL console page | ✅ v0 |
+| xlsx export (`pduck export -to out.xlsx`) | ✅ v0 |
 
 ## License
 

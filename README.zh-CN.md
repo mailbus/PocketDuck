@@ -97,9 +97,10 @@ curl -s http://127.0.0.1:8090/api/analyze \
 | 计划 | 状态 |
 |---|---|
 | 只读 `/api/analyze`（Parquet/CSV/SQLite） | ✅ v0 |
-| 写侧流水线（SQL 文件 → cron → Parquet/PG） | 规划中 |
-| PostgreSQL / MySQL 数据源 | 规划中 |
-| SQL 控制台页、xlsx 导出 | 远期 |
+| 写侧流水线（SQL 文件 → cron → Parquet/PG） | ✅ v0 |
+| PostgreSQL / MySQL 数据源 | ✅ v0 |
+| SQL 控制台页 | ✅ v0 |
+| xlsx 导出（`pduck export -to out.xlsx`） | ✅ v0 |
 
 ## 许可
 
