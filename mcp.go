@@ -117,18 +117,23 @@ func (c *mcpClient) runNamedQuery(ctx context.Context, req *mcp.CallToolRequest,
 // getScheduleResults: 定时管道运行历史（票11 出真数据；collection 未建时结构化空态）。
 func (c *mcpClient) getScheduleResults(ctx context.Context, req *mcp.CallToolRequest, a nameArgs) (*mcp.CallToolResult, any, error) {
 	empty := `{"results":[],"note":"no runs yet; scheduling lands with ticket 11"}`
-	recs, err := c.getJSON(ctx, "/api/collections/pipeline_runs/records?perPage=20&sort=-created")
+	recs, err := c.getJSON(ctx, "/api/collections/pipeline_runs/records?perPage=20")
 	if err != nil || recs["_status"] != float64(http.StatusOK) {
 		return textResult(empty), nil, nil // collection 未建（404）等 → 空态
 	}
 	if a.Name != "" {
 		filter := url.QueryEscape(fmt.Sprintf("(pipeline='%s')", a.Name))
-		recs, err = c.getJSON(ctx, "/api/collections/pipeline_runs/records?perPage=20&sort=-created&filter="+filter)
+		recs, err = c.getJSON(ctx, "/api/collections/pipeline_runs/records?perPage=20&filter="+filter)
 		if err != nil {
 			return textResult(empty), nil, nil
 		}
 	}
 	delete(recs, "_status")
+	if items, ok := recs["items"].([]any); ok { // PB 无 sort 时按插入序 → 反转为最新在前
+		for i, j := 0, len(items)-1; i < j; i, j = i+1, j-1 {
+			items[i], items[j] = items[j], items[i]
+		}
+	}
 	raw, _ := json.Marshal(recs)
 	return textResult(string(raw)), nil, nil
 }

@@ -97,6 +97,9 @@ func main() {
 		case "apply":
 			applyCmd()
 			return
+		case "run":
+			runCmd()
+			return
 		}
 	}
 
@@ -137,12 +140,23 @@ func main() {
 					&core.TextField{Name: "schedule"},
 					&core.JSONField{Name: "tasks", Required: true},
 				}, "idx_pipelines_name"},
+				{"pipeline_runs", []core.Field{
+					&core.TextField{Name: "pipeline", Required: true},
+					&core.TextField{Name: "status", Required: true},
+					&core.NumberField{Name: "rows"},
+					&core.NumberField{Name: "elapsed_ms"},
+					&core.TextField{Name: "checksum"},
+					&core.TextField{Name: "snapshot"},
+					&core.TextField{Name: "error"},
+				}, ""},
 			}
 			for _, c := range cols {
 				if _, err := e.App.FindCollectionByNameOrId(c.name); err != nil {
 					col := core.NewCollection(core.CollectionTypeBase, c.name)
 					col.Fields.Add(c.fields...)
-					col.AddIndex(c.index, true, "name", "")
+					if c.index != "" {
+						col.AddIndex(c.index, true, "name", "")
+					}
 					if err := e.App.Save(col); err != nil {
 						return err
 					}
@@ -151,6 +165,15 @@ func main() {
 			return e.Next()
 		},
 		Priority: -99,
+	})
+
+	// 票11: 内嵌管道调度 worker（30s 轮询 cron 到期；schedule 持久于 pipelines 集合，重启自动恢复）
+	app.OnServe().Bind(&hook.Handler[*core.ServeEvent]{
+		Func: func(e *core.ServeEvent) error {
+			go startPipelineWorker(e.App, duckDB)
+			return e.Next()
+		},
+		Priority: -98,
 	})
 
 	// 静态服务 pb_public/（v0.40 需显式绑定；对齐官方 examples/base/main.go）
