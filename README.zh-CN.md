@@ -6,7 +6,7 @@
 
 **一个二进制：PocketBase 后端 + DuckDB 分析引擎**
 
-[English](README.md)
+[English](README.md) · [llms.txt](llms.txt)
 
 </div>
 

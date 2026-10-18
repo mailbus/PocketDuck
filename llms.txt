@@ -1,0 +1,32 @@
+# PocketDuck
+
+> One binary: PocketBase backend + DuckDB analytics. A lightweight embedded BI stack for small teams — multi-source in (PostgreSQL, MySQL, Parquet, CSV, SQLite), multi-source out (Parquet, PostgreSQL, Excel). Unofficial community project, not affiliated with PocketBase or DuckDB.
+
+## What it is
+
+- Single Go binary (`pduck`) embedding PocketBase (auth, collections, files, realtime, admin UI) and DuckDB (analytics runtime)
+- Read-only analytics API `POST /api/analyze` — SQL with timeouts, 10k row cap; never touches the PocketBase request hot path
+- Cross-source joins: remote/local Parquet × SQLite × PostgreSQL × MySQL in one query
+
+## Core commands
+
+- `pduck serve` — start the server (PocketBase + DuckDB + static frontend in `pb_public/`)
+- `pduck import -from "postgres://host/db/table" -into table` — pull PG/MySQL tables into the warehouse (~100k rows in 4s)
+- `pduck export -sql "SELECT ..." -to out.xlsx` — export results to Parquet, PostgreSQL, or Excel
+- `pduck mcp` — MCP server (stdio) exposing read tools for AI agents: run_sql, run_named_query, get_schedule_results, get_view
+- `pduck apply -f artifact.yaml` — declaratively commit saved queries, views, and pipelines (kubectl-style, JSON Schema validated)
+- `pduck run -name pipeline` — run a saved pipeline once
+
+## Key facts
+
+- License: MIT. Binary name: `pduck`. Module: `github.com/mailbus/pocketduck`
+- MCP tools let agents query analytics and read saved views as JSON (chart spec + data); agents author YAML artifacts and commit them with `pduck apply`
+- Pipelines: declarative YAML (query → export → push), scheduled via cron in-process, results snapshotted as Parquet with checksummed run history
+- Push channels: generic webhook, Feishu bot, Slack incoming webhook
+- Demo query joins a 3M-row NYC taxi Parquet fact table with a SQLite zone dimension; expected output frozen from an independent DuckDB CLI run and verified row-by-row
+
+## Docs
+
+- [README](https://github.com/mailbus/PocketDuck#readme) — quickstart, API reference, roadmap
+- [中文文档](https://github.com/mailbus/PocketDuck/blob/main/README.zh-CN.md)
+- [SQL console page](https://github.com/mailbus/PocketDuck/blob/main/pb_public/console.html) — browser login, run queries, see results

@@ -6,7 +6,7 @@
 
 **One binary. PocketBase backend + DuckDB analytics.**
 
-[中文文档](README.zh-CN.md)
+[中文文档](README.zh-CN.md) · [llms.txt](llms.txt)
 
 </div>
 
