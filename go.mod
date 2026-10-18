@@ -1,4 +1,4 @@
-module github.com/easyhealth/pocketduck
+module github.com/mailbus/pocketduck
 
 go 1.27.0
 

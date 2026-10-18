@@ -2,6 +2,10 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -129,5 +133,93 @@ func TestPipelineCronDue(t *testing.T) {
 	}
 	if _, err := parseSchedule("not a cron"); err == nil {
 		t.Fatal("非法 cron 应报错")
+	}
+}
+
+// 票12: push 任务——三渠道（webhook/feishu/slack），URL 走环境变量，消息含 pduck 关键词。
+func TestRunPipelinePushWebhook(t *testing.T) {
+	received := make(chan []byte, 1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		received <- b
+		w.Write([]byte(`{"ok":true}`))
+	}))
+	defer srv.Close()
+	os.Setenv("PDUCK_WEBHOOK", srv.URL)
+	defer os.Unsetenv("PDUCK_WEBHOOK")
+
+	db, _ := sql.Open("duckdb", "")
+	defer db.Close()
+	os.Setenv("PDUCK_SNAPSHOT_DIR", t.TempDir())
+	defer os.Unsetenv("PDUCK_SNAPSHOT_DIR")
+
+	hist, _ := testHist(t)
+	spec := &pipelineSpec{Name: "push-demo", Tasks: []map[string]any{
+		{"query": "SELECT 7 AS n"},
+		{"push": "channel=webhook"},
+	}}
+	if err := runPipeline(db, testResolver(nil), hist, spec); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case body := <-received:
+		s := string(body)
+		if !strings.Contains(s, "pduck") || !strings.Contains(s, "push-demo") || !strings.Contains(s, "success") {
+			t.Fatalf("推送 payload 不完整: %s", s)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("webhook 未收到推送")
+	}
+}
+
+func TestRunPipelinePushMissingURL(t *testing.T) {
+	os.Unsetenv("PDUCK_FEISHU_WEBHOOK")
+	db, _ := sql.Open("duckdb", "")
+	defer db.Close()
+	os.Setenv("PDUCK_SNAPSHOT_DIR", t.TempDir())
+	defer os.Unsetenv("PDUCK_SNAPSHOT_DIR")
+
+	var status, errMsg string
+	hist := func(s string, rows, e int64, c, snap, em string) { status, errMsg = s, em }
+	spec := &pipelineSpec{Name: "push-noenv", Tasks: []map[string]any{
+		{"query": "SELECT 1"},
+		{"push": "channel=feishu"},
+	}}
+	runPipeline(db, testResolver(nil), hist, spec)
+	if status != "error" || !strings.Contains(errMsg, "PDUCK_FEISHU_WEBHOOK") {
+		t.Fatalf("缺 URL 应报环境变量名, got %q / %q", status, errMsg)
+	}
+}
+
+func TestRunPipelinePushFeishuBody(t *testing.T) {
+	var gotBody []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotBody, _ = io.ReadAll(r.Body)
+		w.Write([]byte(`{"code":0}`))
+	}))
+	defer srv.Close()
+	os.Setenv("PDUCK_FEISHU_WEBHOOK", srv.URL)
+	defer os.Unsetenv("PDUCK_FEISHU_WEBHOOK")
+
+	db, _ := sql.Open("duckdb", "")
+	defer db.Close()
+	os.Setenv("PDUCK_SNAPSHOT_DIR", t.TempDir())
+	defer os.Unsetenv("PDUCK_SNAPSHOT_DIR")
+
+	hist, _ := testHist(t)
+	spec := &pipelineSpec{Name: "push-fs", Tasks: []map[string]any{
+		{"push": "channel=feishu"},
+	}}
+	runPipeline(db, testResolver(nil), hist, spec)
+	var body map[string]any
+	if err := json.Unmarshal(gotBody, &body); err != nil {
+		t.Fatal(err)
+	}
+	if body["msg_type"] != "text" {
+		t.Fatalf("飞书 body 应为 msg_type=text: %v", body)
+	}
+	content := body["content"].(map[string]any)
+	if !strings.Contains(content["text"].(string), "pduck") {
+		t.Fatalf("飞书文本缺 pduck 关键词: %v", content)
 	}
 }

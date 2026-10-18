@@ -66,7 +66,7 @@ const schemaPipeline = `{
       "minItems": 1,
       "items": {
         "type": "object",
-        "properties": {"query": {"type": "string"}, "export": {"type": "string"}},
+        "properties": {"query": {"type": "string"}, "export": {"type": "string"}, "push": {"type": "string"}},
         "minProperties": 1,
         "additionalProperties": false
       }

@@ -7,18 +7,20 @@ package main
 // DuckDB 文件在 serve 生命周期内只以 RO 打开一次（单写者线的 RO 面）。
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
-	"flag"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/pocketbase/dbx"
@@ -151,7 +153,25 @@ func runPipeline(db *sql.DB, resolve resolveFn, hist histFn, spec *pipelineSpec)
 			}
 			continue
 		}
-		status, errMsg = "error", fmt.Sprintf("task %d: 未知任务（支持 query/export）", i)
+		if pv, ok := task["push"]; ok {
+			p, _ := pv.(string)
+			channel, extra := parsePushTask(p)
+			checksumShort := checksum
+			if len(checksumShort) > 12 {
+				checksumShort = checksumShort[:12]
+			}
+			text := fmt.Sprintf("[pduck] 管道 %s | %s | rows=%d | %dms | checksum=%s",
+				spec.Name, status, rows, time.Since(start).Milliseconds(), checksumShort)
+			if extra != "" {
+				text += "\n" + extra
+			}
+			if err := sendPush(channel, text); err != nil {
+				status, errMsg = "error", fmt.Sprintf("task %d: 推送失败: %v", i, err)
+				break
+			}
+			continue
+		}
+		status, errMsg = "error", fmt.Sprintf("task %d: 未知任务（支持 query/export/push）", i)
 		break
 	}
 
@@ -174,6 +194,57 @@ func fileSHA256(path string) string {
 
 func startsWith(s, prefix string) bool {
 	return len(s) >= len(prefix) && s[:len(prefix)] == prefix
+}
+
+// parsePushTask: "channel=feishu" 或 "channel=feishu text=自定义附言" → (渠道, 附言)。
+func parsePushTask(v string) (channel, extra string) {
+	for _, part := range strings.Fields(v) {
+		if startsWith(part, "channel=") {
+			channel = part[8:]
+		} else if startsWith(part, "text=") {
+			extra = part[5:]
+		}
+	}
+	return channel, extra
+}
+
+// sendPush: 推送文本摘要到指定渠道（票12）。URL 走环境变量——webhook URL 即凭据，
+// 不进 YAML 草稿、不落 PB。net/http 默认传输读 HTTP_PROXY，国际渠道（Slack）挂代理即通。
+func sendPush(channel, text string) error {
+	var url string
+	var body []byte
+	switch channel {
+	case "feishu":
+		url = os.Getenv("PDUCK_FEISHU_WEBHOOK")
+		if url == "" {
+			return fmt.Errorf("缺少环境变量 PDUCK_FEISHU_WEBHOOK（飞书自定义机器人 webhook）")
+		}
+		body, _ = json.Marshal(map[string]any{"msg_type": "text", "content": map[string]any{"text": text}})
+	case "slack":
+		url = os.Getenv("PDUCK_SLACK_WEBHOOK")
+		if url == "" {
+			return fmt.Errorf("缺少环境变量 PDUCK_SLACK_WEBHOOK（Slack incoming webhook）")
+		}
+		body, _ = json.Marshal(map[string]any{"text": text})
+	case "webhook":
+		url = os.Getenv("PDUCK_WEBHOOK")
+		if url == "" {
+			return fmt.Errorf("缺少环境变量 PDUCK_WEBHOOK（通用 webhook）")
+		}
+		body, _ = json.Marshal(map[string]any{"text": text})
+	default:
+		return fmt.Errorf("未知推送渠道 %q（支持 webhook/feishu/slack）", channel)
+	}
+	resp, err := http.Post(url, "application/json", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("推送 HTTP %d: %s", resp.StatusCode, b)
+	}
+	return nil
 }
 
 // startPipelineWorker: serve 内嵌调度器。30s 轮询 pipelines，cron 到期即执行；
