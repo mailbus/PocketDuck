@@ -91,6 +91,9 @@ func main() {
 		case "import":
 			importCmd()
 			return
+		case "mcp":
+			mcpCmd()
+			return
 		}
 	}
 
@@ -105,6 +108,27 @@ func main() {
 	app.OnServe().Bind(&hook.Handler[*core.ServeEvent]{
 		Func:     bindAnalyze(duckDB),
 		Priority: -100,
+	})
+
+	// 票09: saved_queries 集合引导（MCP run_named_query / 票10 apply 的固化产物落点）
+	app.OnServe().Bind(&hook.Handler[*core.ServeEvent]{
+		Func: func(e *core.ServeEvent) error {
+			if _, err := e.App.FindCollectionByNameOrId("saved_queries"); err != nil {
+				col := core.NewCollection(core.CollectionTypeBase, "saved_queries")
+				col.Fields.Add(
+					&core.TextField{Name: "name", Required: true},
+					&core.TextField{Name: "sql", Required: true},
+					&core.JSONField{Name: "params"},
+					&core.TextField{Name: "description"},
+				)
+				col.AddIndex("idx_saved_queries_name", true, "name", "")
+				if err := e.App.Save(col); err != nil {
+					return err
+				}
+			}
+			return e.Next()
+		},
+		Priority: -99,
 	})
 
 	// 静态服务 pb_public/（v0.40 需显式绑定；对齐官方 examples/base/main.go）

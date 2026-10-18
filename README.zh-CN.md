@@ -42,7 +42,7 @@ GROUP BY 1, 2
 - **Linux**：`apt install gcc`（或等价命令）
 
 ```bash
-git clone <repo-url> PocketDuck && cd PocketDuck
+git clone https://github.com/mailbus/PocketDuck && cd PocketDuck
 set CGO_ENABLED=1        # Windows (cmd)；Linux/macOS: export CGO_ENABLED=1
 go build -o pduck.exe .  # Linux: go build -o pduck .
 
