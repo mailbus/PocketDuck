@@ -84,6 +84,10 @@ curl -s http://127.0.0.1:8090/api/analyze \
 {"columns":["Borough","pickup_hour","avg_fare"],"rows":[["Bronx",0,19.32],["Bronx",1,10.21],...],"row_count":166,"elapsed_ms":124,"truncated":false}
 ```
 
+## 给 AI Agent
+
+PocketDuck 原生说 MCP：`pduck mcp` 向 Claude Code、Codex、OpenCode 等暴露读面工具（run_sql、run_named_query、get_schedule_results、get_view）；agent 用 YAML 编写查询/视图/管道，`pduck apply` 提交生效。完整指引见 [AGENTS.md](AGENTS.md)（含各家 MCP 配置片段）。
+
 ## 接口
 
 `POST /api/analyze` — 需 PocketBase token 鉴权，只读，硬约束：

@@ -84,6 +84,10 @@ Response:
 {"columns":["Borough","pickup_hour","avg_fare"],"rows":[["Bronx",0,19.32],["Bronx",1,10.21],...],"row_count":166,"elapsed_ms":124,"truncated":false}
 ```
 
+## For AI agents
+
+PocketDuck speaks MCP: run `pduck mcp` to expose read tools (run_sql, run_named_query, get_schedule_results, get_view) to Claude Code, Codex, OpenCode, etc. Agents author saved queries, views and pipelines as YAML and commit them with `pduck apply`. See [AGENTS.md](AGENTS.md) for the full agent guide and per-tool MCP config.
+
 ## The API
 
 `POST /api/analyze` — authenticated (PocketBase token), read-only, hard-capped:
