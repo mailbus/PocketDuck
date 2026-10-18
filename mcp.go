@@ -116,25 +116,29 @@ func (c *mcpClient) runNamedQuery(ctx context.Context, req *mcp.CallToolRequest,
 
 // getScheduleResults: 定时管道运行历史（票11 出真数据；collection 未建时结构化空态）。
 func (c *mcpClient) getScheduleResults(ctx context.Context, req *mcp.CallToolRequest, a nameArgs) (*mcp.CallToolResult, any, error) {
-	empty := `{"results":[],"note":"no runs yet; scheduling lands with ticket 11"}`
+	// 归一化输出 {"results":[...]}——collection 未建（404）带 note，空库 results 为空数组
+	out := map[string]any{"results": []any{}}
 	recs, err := c.getJSON(ctx, "/api/collections/pipeline_runs/records?perPage=20")
 	if err != nil || recs["_status"] != float64(http.StatusOK) {
-		return textResult(empty), nil, nil // collection 未建（404）等 → 空态
+		out["note"] = "pipeline_runs unavailable"
+		raw, _ := json.Marshal(out)
+		return textResult(string(raw)), nil, nil
 	}
 	if a.Name != "" {
 		filter := url.QueryEscape(fmt.Sprintf("(pipeline='%s')", a.Name))
 		recs, err = c.getJSON(ctx, "/api/collections/pipeline_runs/records?perPage=20&filter="+filter)
-		if err != nil {
-			return textResult(empty), nil, nil
+		if err != nil || recs["_status"] != float64(http.StatusOK) {
+			raw, _ := json.Marshal(out)
+			return textResult(string(raw)), nil, nil
 		}
 	}
-	delete(recs, "_status")
 	if items, ok := recs["items"].([]any); ok { // PB 无 sort 时按插入序 → 反转为最新在前
 		for i, j := 0, len(items)-1; i < j; i, j = i+1, j-1 {
 			items[i], items[j] = items[j], items[i]
 		}
+		out["results"] = items
 	}
-	raw, _ := json.Marshal(recs)
+	raw, _ := json.Marshal(out)
 	return textResult(string(raw)), nil, nil
 }
 

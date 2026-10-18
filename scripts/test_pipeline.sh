@@ -84,7 +84,7 @@ for line in sys.stdin:
         m=json.loads(line)
         if m.get('id')==3:
             d=json.loads(m['result']['content'][0]['text'])
-            items=[r for r in d['items'] if r['pipeline']=='zone-count-minutely']
+            items=[r for r in d['results'] if r['pipeline']=='zone-count-minutely']
             assert items and items[0]['checksum'], d
             print('PASS get_schedule_results 真数据: status', items[0]['status'], '| checksum', items[0]['checksum'][:12])
 "
