@@ -137,6 +137,9 @@ func (c *mcpClient) getScheduleResults(ctx context.Context, req *mcp.CallToolReq
 			items[i], items[j] = items[j], items[i]
 		}
 		out["results"] = items
+		if len(items) == 0 {
+			out["note"] = "no runs yet"
+		}
 	}
 	raw, _ := json.Marshal(out)
 	return textResult(string(raw)), nil, nil
