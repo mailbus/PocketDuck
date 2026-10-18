@@ -3,6 +3,7 @@
 # 用法: scripts/test_mcp.sh   （自动起 serve，结束时清理）
 set -euo pipefail
 cd "$(dirname "$0")/.."
+export PYTHONIOENCODING=utf-8
 
 SERVE_URL=http://127.0.0.1:8090
 

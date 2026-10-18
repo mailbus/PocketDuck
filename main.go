@@ -94,6 +94,9 @@ func main() {
 		case "mcp":
 			mcpCmd()
 			return
+		case "apply":
+			applyCmd()
+			return
 		}
 	}
 
@@ -110,20 +113,39 @@ func main() {
 		Priority: -100,
 	})
 
-	// 票09: saved_queries 集合引导（MCP run_named_query / 票10 apply 的固化产物落点）
+	// 票09/10: 固化产物集合引导（saved_queries / views / pipelines）
 	app.OnServe().Bind(&hook.Handler[*core.ServeEvent]{
 		Func: func(e *core.ServeEvent) error {
-			if _, err := e.App.FindCollectionByNameOrId("saved_queries"); err != nil {
-				col := core.NewCollection(core.CollectionTypeBase, "saved_queries")
-				col.Fields.Add(
+			cols := []struct {
+				name   string
+				fields []core.Field
+				index  string
+			}{
+				{"saved_queries", []core.Field{
 					&core.TextField{Name: "name", Required: true},
 					&core.TextField{Name: "sql", Required: true},
 					&core.JSONField{Name: "params"},
 					&core.TextField{Name: "description"},
-				)
-				col.AddIndex("idx_saved_queries_name", true, "name", "")
-				if err := e.App.Save(col); err != nil {
-					return err
+				}, "idx_saved_queries_name"},
+				{"views", []core.Field{
+					&core.TextField{Name: "name", Required: true},
+					&core.TextField{Name: "query", Required: true},
+					&core.JSONField{Name: "chart", Required: true},
+				}, "idx_views_name"},
+				{"pipelines", []core.Field{
+					&core.TextField{Name: "name", Required: true},
+					&core.TextField{Name: "schedule"},
+					&core.JSONField{Name: "tasks", Required: true},
+				}, "idx_pipelines_name"},
+			}
+			for _, c := range cols {
+				if _, err := e.App.FindCollectionByNameOrId(c.name); err != nil {
+					col := core.NewCollection(core.CollectionTypeBase, c.name)
+					col.Fields.Add(c.fields...)
+					col.AddIndex(c.index, true, "name", "")
+					if err := e.App.Save(col); err != nil {
+						return err
+					}
 				}
 			}
 			return e.Next()

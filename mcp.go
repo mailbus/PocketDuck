@@ -133,16 +133,35 @@ func (c *mcpClient) getScheduleResults(ctx context.Context, req *mcp.CallToolReq
 	return textResult(string(raw)), nil, nil
 }
 
-// getView: UI-as-JSON（票10 出真数据；views collection 未建时空态）。
+// getView: UI-as-JSON（票10）——指定 name 返回 {view, data}（跑引用的 named query），
+// 不带 name 返回视图清单；views collection 未建时空态。
 func (c *mcpClient) getView(ctx context.Context, req *mcp.CallToolRequest, a nameArgs) (*mcp.CallToolResult, any, error) {
-	empty := `{"view":null,"note":"views land with ticket 10 (pduck apply)"}`
+	empty := `{"view":null,"note":"no views yet; apply one with pduck apply"}`
 	recs, err := c.getJSON(ctx, "/api/collections/views/records?perPage=20")
 	if err != nil || recs["_status"] != float64(http.StatusOK) {
-		return textResult(empty), nil, nil // collection 未建（404）等 → 空态
+		return textResult(empty), nil, nil
 	}
-	delete(recs, "_status")
-	raw, _ := json.Marshal(recs)
-	return textResult(string(raw)), nil, nil
+	items, _ := recs["items"].([]any)
+	if len(items) == 0 {
+		return textResult(empty), nil, nil
+	}
+	if a.Name == "" {
+		raw, _ := json.Marshal(items)
+		return textResult(string(raw)), nil, nil
+	}
+	for _, it := range items {
+		rec, _ := it.(map[string]any)
+		if name, _ := rec["name"].(string); name == a.Name {
+			queryRef, _ := rec["query"].(string)
+			data, _, err := c.runNamedQuery(ctx, req, nameArgs{Name: queryRef})
+			if err != nil {
+				return nil, nil, fmt.Errorf("view %q 的 named query %q 执行失败: %w", a.Name, queryRef, err)
+			}
+			out, _ := json.Marshal(map[string]any{"view": rec, "data": json.RawMessage(resultText(data))})
+			return textResult(string(out)), nil, nil
+		}
+	}
+	return nil, nil, fmt.Errorf("view %q not found", a.Name)
 }
 
 // findRecord: 按 name 查 PB collection 记录；未命中返回 not found 错误。
