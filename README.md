@@ -16,9 +16,15 @@
 PocketDuck is a single-binary backend for small analytics apps:
 
 - **PocketBase** — auth, collections, files, realtime, admin UI, static frontend (`pb_public/`)
-- **DuckDB** — read-only SQL analytics over local/remote Parquet, CSV and SQLite files, with cross-source joins
+- **DuckDB** — SQL analytics over local/remote Parquet, CSV and SQLite files, with cross-source joins
 
-One `POST /api/analyze` endpoint. No drivers to install: Parquet/CSV are built in, SQLite reads via `sqlite_scan()`.
+Multi-source in, multi-source out:
+
+- **In**: `pduck import` pulls PostgreSQL/MySQL tables into the DuckDB warehouse (100k rows ≈ 4 s)
+- **Out**: `pduck export` writes query results to Parquet, PostgreSQL, or Excel (`out.xlsx`)
+- **Browse**: a built-in SQL console page (login with your PocketBase account, run queries, see results)
+
+Analytics never touches the PocketBase request hot path: `POST /api/analyze` is a separate route with timeouts and row caps. No drivers to install: Parquet/CSV are built in, SQLite reads via `sqlite_scan()`.
 
 ```sql
 -- one query joining a 3M-row Parquet fact table with a SQLite dimension table

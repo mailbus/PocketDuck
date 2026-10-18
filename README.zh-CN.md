@@ -16,9 +16,15 @@
 PocketDuck 是面向小型分析应用的单二进制后端：
 
 - **PocketBase** — 认证、集合、文件、实时订阅、admin UI、静态前端（`pb_public/`）
-- **DuckDB** — 对本地/远端 Parquet、CSV、SQLite 文件的只读 SQL 分析，支持跨源 JOIN
+- **DuckDB** — 对本地/远端 Parquet、CSV、SQLite 文件的 SQL 分析，支持跨源 JOIN
 
-只有一个 `POST /api/analyze` 接口。零驱动安装：Parquet/CSV 内置，SQLite 走 `sqlite_scan()`。
+多源进出：
+
+- **进**：`pduck import` 把 PostgreSQL/MySQL 表拉进 DuckDB 仓库（10 万行 ≈ 4 秒）
+- **出**：`pduck export` 把查询结果写到 Parquet、PostgreSQL 或 Excel（`out.xlsx`）
+- **浏览**：内置 SQL 控制台页（PocketBase 账号登录、跑查询、看结果）
+
+分析查询永不进 PocketBase 请求热路径：`POST /api/analyze` 是独立路由，带超时和行数上限。零驱动安装：Parquet/CSV 内置，SQLite 走 `sqlite_scan()`。
 
 ```sql
 -- 一条 SQL：300 万行 Parquet 事实表 JOIN SQLite 维表
